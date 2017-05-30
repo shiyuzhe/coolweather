@@ -9,10 +9,15 @@ import android.coolweather.com.coolweather.util.Utility;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -42,6 +47,12 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView sportText;
 
     private ImageView bingPicImg;
+
+
+    public SwipeRefreshLayout swipeRefreshLayout;
+    private String mWeatherId;
+    public DrawerLayout drawerLayout;
+    private TextView navText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,16 +76,34 @@ public class WeatherActivity extends AppCompatActivity {
         carWashText = (TextView)  findViewById(R.id.car_wash_text);
         sportText = (TextView)  findViewById(R.id.sport_text);
 
+        swipeRefreshLayout = (SwipeRefreshLayout)findViewById(R.id.swipe_reefresh);
+        swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary);
+        drawerLayout = (DrawerLayout)findViewById(R.id.drawer_layout);
+        navText = (TextView) findViewById(R.id.nav_text);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString =  preferences.getString("weather",null);
         if(weatherString!=null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
+            mWeatherId = weather.basic.weatherId;
             showWeatherInfo(weather);
         }else{
-            String weathrId = getIntent().getStringExtra("weather_id");
+
+            mWeatherId = getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(weathrId);
+            requestWeather(mWeatherId);
         }
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener(){
+            @Override
+            public void onRefresh() {
+                requestWeather(mWeatherId);
+            }
+        });
+        navText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
 
         String bingImg= preferences.getString("bing_pic",null);
         if(bingImg!=null){
@@ -97,6 +126,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
+                        swipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -116,6 +146,7 @@ public class WeatherActivity extends AppCompatActivity {
                         }else{
                             Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -127,7 +158,7 @@ public class WeatherActivity extends AppCompatActivity {
      */
     private void showWeatherInfo(Weather weather){
         String cityName = weather.basic.cityName;
-        String updateTime = weather.basic.update.updateTime.split("")[1];
+        String updateTime = weather.basic.update.updateTime.split(" ")[1];
         String degree = weather.now.tempareture+"°C";
         String weatherInfo = weather.now.more.info;
         titleCity.setText(cityName);
@@ -187,5 +218,8 @@ public class WeatherActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+    public void setmWeatherId(String mWeatherId){
+        this.mWeatherId = mWeatherId;
     }
 }
